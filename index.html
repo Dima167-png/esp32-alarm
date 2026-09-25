@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 Alarm</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    min-height: 100vh; display: grid; place-items: center;
+    padding: 20px;
+  }
+  .card {
+    background: #1e293b; border-radius: 20px; padding: 32px;
+    width: 100%; max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #94a3b8; margin-bottom: 24px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+  .dot.on { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+  .metrics {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 24px;
+  }
+  .metric { background: #0f172a; padding: 16px; border-radius: 12px; }
+  .metric .label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+  .metric .value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+  .alarm-status {
+    padding: 20px; border-radius: 12px; text-align: center;
+    font-size: 18px; font-weight: 600; margin-bottom: 24px;
+  }
+  .alarm-status.off { background: #0f172a; color: #64748b; }
+  .alarm-status.on { background: #dc2626; color: #fff; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+  .melody-name { color: #94a3b8; font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>ESP32 Alarm</h1>
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <span id="statusText">Загрузка...</span>
+  </div>
+  <div class="metrics">
+    <div class="metric">
+      <div class="label">WiFi</div>
+      <div class="value"><span id="rssi">--</span> dBm</div>
+    </div>
+    <div class="metric">
+      <div class="label">Uptime</div>
+      <div class="value"><span id="uptime">--</span> s</div>
+    </div>
+  </div>
+  <div class="alarm-status off" id="alarmStatus">Будильник выключен</div>
+  <div class="melody-name" id="melodyName">Мелодия: --</div>
+</div>
+
+<script>
+// ⚙️ ЗАМЕНИ на свой ник и репозиторий
+const REPO = "ТВОЙ_ЛОГИН/esp32-alarm";
+const DATA_URL = `https://raw.githubusercontent.com/${REPO}/main/data.json`;
+
+async function loadData() {
+  try {
+    const res = await fetch(DATA_URL + "?t=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+
+    document.getElementById("dot").classList.add("on");
+    document.getElementById("statusText").textContent = "ESP32 на связи";
+
+    if (data.rssi !== undefined) document.getElementById("rssi").textContent = data.rssi;
+    if (data.uptime !== undefined) document.getElementById("uptime").textContent = data.uptime;
+
+    const alarmEl = document.getElementById("alarmStatus");
+    if (data.alarm) {
+      alarmEl.className = "alarm-status on";
+      alarmEl.textContent = "🔔 БУДИЛЬНИК ИГРАЕТ";
+    } else {
+      alarmEl.className = "alarm-status off";
+      alarmEl.textContent = "Будильник выключен";
+    }
+
+    if (data.melodyName) {
+      document.getElementById("melodyName").textContent = "Мелодия: " + data.melodyName;
+    }
+  } catch (e) {
+    document.getElementById("dot").classList.remove("on");
+    document.getElementById("statusText").textContent = "Ошибка: " + e.message;
+  }
+}
+
+loadData();
+setInterval(loadData, 5000);
+</script>
+</body>
+</html>
